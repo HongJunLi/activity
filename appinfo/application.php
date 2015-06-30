@@ -112,9 +112,13 @@ class Application extends App {
 		});
 
 		$container->registerService('Hooks', function(IContainer $c) {
+			/** @var \OC\Server $server */
+			$server = $c->query('ServerContainer');
+
 			return new FilesHooks(
 				$c->query('ActivityData'),
 				$c->query('UserSettings'),
+				$server->getRootFolder(),
 				$c->query('CurrentUID')
 			);
 		});

@@ -23,11 +23,11 @@
 namespace OCA\Activity;
 
 use OC\Files\Filesystem;
-use OC\Files\View;
 use OCA\Activity\Extension\Files;
 use OCA\Activity\Extension\Files_Sharing;
 use OCP\Activity\IExtension;
 use OCP\DB;
+use OCP\Files\IRootFolder;
 use OCP\Share;
 use OCP\Util;
 
@@ -42,6 +42,9 @@ class FilesHooks {
 	/** @var \OCA\Activity\UserSettings */
 	protected $userSettings;
 
+	/** @var \OCP\Files\IRootFolder */
+	protected $rootFolder;
+
 	/** @var string|false */
 	protected $currentUser;
 
@@ -50,11 +53,13 @@ class FilesHooks {
 	 *
 	 * @param Data $activityData
 	 * @param UserSettings $userSettings
+	 * @param IRootFolder $rootFolder
 	 * @param string|false $currentUser
 	 */
-	public function __construct(Data $activityData, UserSettings $userSettings, $currentUser) {
+	public function __construct(Data $activityData, UserSettings $userSettings, IRootFolder $rootFolder, $currentUser) {
 		$this->activityData = $activityData;
 		$this->userSettings = $userSettings;
+		$this->rootFolder = $rootFolder;
 		$this->currentUser = $currentUser;
 	}
 
@@ -158,8 +163,19 @@ class FilesHooks {
 		if ($uidOwner !== $this->currentUser) {
 			Filesystem::initMountPoints($uidOwner);
 			$info = Filesystem::getFileInfo($path);
-			$ownerView = new View('/'.$uidOwner.'/files');
-			$path = $ownerView->getPath($info['fileid']);
+
+			/** @var \OCP\Files\Folder $ownerFolder */
+			$ownerRoot = '/' . $uidOwner . '/files';
+			$ownerFolder = $this->rootFolder->get($ownerRoot);
+
+			/** @var \OCP\Files\Node[] $ownerNodes */
+			$ownerNodes = $ownerFolder->getById((int) $info['fileid']);
+			foreach ($ownerNodes as $ownerNode) {
+				if (strpos($ownerNode->getPath(), $ownerRoot . '/') === 0) {
+					$path = substr($ownerNode->getPath(), strlen($ownerRoot));
+					break;
+				}
+			}
 		}
 
 		return array($path, $uidOwner);
