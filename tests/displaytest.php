@@ -30,7 +30,7 @@ class DisplayTest extends TestCase {
 	protected $urlGenerator;
 
 	/** @var \PHPUnit_Framework_MockObject_MockObject */
-	protected $view;
+	protected $rootFolder;
 
 	protected function setUp() {
 		parent::setUp();
@@ -44,15 +44,15 @@ class DisplayTest extends TestCase {
 		$this->urlGenerator = $this->getMockBuilder('OCP\IURLGenerator')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->view = $this->getMockBuilder('OC\Files\View')
+		$this->rootFolder = $this->getMockBuilder('OCP\Files\IRootFolder')
 			->disableOriginalConstructor()
 			->getMock();
 
 		$this->display = new Display(
 			$this->dateTimeFormatter,
 			$this->preview,
-			$this->urlGenerator,
-			$this->view
+			$this->rootFolder,
+			$this->urlGenerator
 		);
 	}
 
@@ -95,6 +95,11 @@ class DisplayTest extends TestCase {
 	 * @dataProvider showData
 	 */
 	public function testShow(array $data) {
+		$this->rootFolder->expects($this->once())
+			->method('get')
+			->with('/foobar/files/A.txt')
+			->willThrowException(new \OCP\Files\NotFoundException());
+
 		$output = $this->display->show($data);
 		$this->assertNotEmpty($output, 'Asserting that the template output is not empty');
 	}
@@ -104,14 +109,14 @@ class DisplayTest extends TestCase {
 	 * @dataProvider showData
 	 */
 	public function testShowExisting(array $data) {
-		$this->view->expects($this->any())
-			->method('file_exists')
-			->with('A.txt')
-			->willReturn(true);
-		$this->view->expects($this->any())
-			->method('is_dir')
-			->with('A.txt')
-			->willReturn(false);
+		$this->rootFolder->expects($this->once())
+			->method('get')
+			->with('/foobar/files/A.txt')
+			->willReturn(
+				$this->getMockBuilder('\OCP\Files\File')
+					->disableOriginalConstructor()
+					->getMock()
+			);
 
 		$this->preview->expects($this->any())
 			->method('isMimeSupported')

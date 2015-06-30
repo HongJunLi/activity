@@ -88,10 +88,10 @@ class Application extends App {
 			$server = $c->query('ServerContainer');
 
 			return new Display(
-				$server->query('DateTimeFormatter'),
+				$server->getDateTimeFormatter(),
 				$server->getPreviewManager(),
-				$server->getURLGenerator(),
-				new View('')
+				$server->getRootFolder(),
+				$server->getURLGenerator()
 			);
 		});
 

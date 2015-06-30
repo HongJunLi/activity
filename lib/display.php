@@ -23,10 +23,13 @@
 
 namespace OCA\Activity;
 
-use OC\Files\View;
+use OCP\Files\Folder;
+use OCP\Files\IRootFolder;
+use OCP\Files\Node;
+use OCP\IDateTimeFormatter;
+use OCP\IPreview;
+use OCP\IURLGenerator;
 use OCP\Template;
-use OCP\User;
-use OCP\Util;
 
 /**
  * Class Display
@@ -34,33 +37,33 @@ use OCP\Util;
  * @package OCA\Activity
  */
 class Display {
-	/** @var \OCP\IDateTimeFormatter */
+	/** @var IDateTimeFormatter */
 	protected $dateTimeFormatter;
 
-	/** @var \OCP\IPreview */
+	/** @var IPreview */
 	protected $preview;
 
-	/** @var \OCP\IURLGenerator */
-	protected $urlGenerator;
+	/** @var IRootFolder */
+	protected $rootFolder;
 
-	/** @var View */
-	protected $view;
+	/** @var IURLGenerator */
+	protected $urlGenerator;
 
 	/**
 	 * Constructor
 	 *
-	 * @param \OCP\IDateTimeFormatter $dateTimeFormatter
-	 * @param \OCP\IPreview $preview
-	 * @param \OCP\IURLGenerator $urlGenerator
-	 * @param View $view
+	 * @param IDateTimeFormatter $dateTimeFormatter
+	 * @param IPreview $preview
+	 * @param IRootFolder $rootFolder
+	 * @param IURLGenerator $urlGenerator
 	 */
-	public function __construct(\OCP\IDateTimeFormatter $dateTimeFormatter,
-								\OCP\IPreview $preview,
-								\OCP\IURLGenerator $urlGenerator,
-								\OC\Files\View $view) {
-		$this->view = $view;
-		$this->preview = $preview;
+	public function __construct(IDateTimeFormatter $dateTimeFormatter,
+								IPreview $preview,
+								IRootFolder $rootFolder,
+								IURLGenerator $urlGenerator) {
 		$this->dateTimeFormatter = $dateTimeFormatter;
+		$this->preview = $preview;
+		$this->rootFolder = $rootFolder;
 		$this->urlGenerator = $urlGenerator;
 	}
 
@@ -74,8 +77,6 @@ class Display {
 		$tmpl = new Template('activity', 'stream.item');
 		$tmpl->assign('formattedDate', $this->dateTimeFormatter->formatDateTime($activity['timestamp']));
 		$tmpl->assign('formattedTimestamp', Template::relative_modified_date($activity['timestamp']));
-		$tmpl->assign('user', $activity['user']);
-		$tmpl->assign('displayName', User::getDisplayName($activity['user']));
 
 		if (strpos($activity['subjectformatted']['markup']['trimmed'], '<a ') !== false) {
 			// We do not link the subject as we create links for the parameters instead
@@ -85,13 +86,19 @@ class Display {
 		$tmpl->assign('event', $activity);
 
 		if ($activity['file']) {
-			$this->view->chroot('/' . $activity['affecteduser'] . '/files');
-			$exist = $this->view->file_exists($activity['file']);
-			$is_dir = $this->view->is_dir($activity['file']);
+			try {
+				$path = '/' . $activity['affecteduser'] . '/files/' . trim($activity['file'], '/');
+				$node = $this->rootFolder->get($path);
+				$exist = $node instanceof Node;
+				$is_dir = $node instanceof Folder;
+				$mimeType = $node->getMimetype();
+			} catch (\OCP\Files\NotFoundException $e) {
+				$exist = $is_dir = false;
+				$mimeType = \OCP\Files::getMimeType($activity['file']);
+			}
 			$tmpl->assign('previewLink', $this->getPreviewLink($activity['file'], $is_dir));
 
 			// show a preview image if the file still exists
-			$mimeType = \OCP\Files::getMimeType($activity['file']);
 			if ($mimeType && !$is_dir && $this->preview->isMimeSupported($mimeType) && $exist) {
 				$tmpl->assign('previewImageLink',
 					$this->urlGenerator->linkToRoute('core_ajax_preview', array(
