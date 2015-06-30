@@ -31,8 +31,7 @@ class ParameterHelperTest extends TestCase {
 	/** @var \OCA\Activity\ParameterHelper */
 	protected $parameterHelper;
 	/** @var \PHPUnit_Framework_MockObject_MockObject */
-	protected $view;
-	/** @var \PHPUnit_Framework_MockObject_MockObject */
+	protected $rootFolder;
 
 	/** @var \PHPUnit_Framework_MockObject_MockObject */
 	protected $config;
@@ -45,7 +44,7 @@ class ParameterHelperTest extends TestCase {
 
 		$this->originalWEBROOT =\OC::$WEBROOT;
 		\OC::$WEBROOT = '';
-		$this->view = $view = $this->getMockBuilder('\OC\Files\View')
+		$this->rootFolder = $this->getMockBuilder('OCP\Files\IRootFolder')
 			->disableOriginalConstructor()
 			->getMock();
 		$this->config = $this->getMockBuilder('\OCP\IConfig')
@@ -69,11 +68,10 @@ class ParameterHelperTest extends TestCase {
 				['user<HTML>', $this->getUserMockDisplayName('user<HTML>', 'User <HTML>')],
 			]);
 
-		/** @var \OC\Files\View $view */
 		$this->parameterHelper = new \OCA\Activity\ParameterHelper(
 			$activityManager,
 			$this->userManager,
-			$view,
+			$this->rootFolder,
 			$this->config,
 			$activityLanguage,
 			'test'
@@ -180,10 +178,14 @@ class ParameterHelperTest extends TestCase {
 	 */
 	public function testPrepareParameters($params, $filePosition, $stripPath, $highlightParams, $expected, $createFolder = '', $enableAvatars = true) {
 		if ($createFolder !== '') {
-			$this->view->expects($this->any())
-				->method('is_dir')
+			$this->rootFolder->expects($this->any())
+				->method('get')
 				->with($createFolder)
-				->willReturn(true);
+				->willReturn(
+					$this->getMockBuilder('\OCP\Files\Folder')
+						->disableOriginalConstructor()
+						->getMock()
+				);
 		}
 
 		$this->config->expects($this->any())

@@ -24,12 +24,12 @@
 namespace OCA\Activity;
 
 use OCP\Activity\IManager;
+use OCP\Files\Folder;
+use OCP\Files\IRootFolder;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
-use OCP\User;
 use OCP\Util;
-use OC\Files\View;
 
 class ParameterHelper {
 	/** @var \OCP\Activity\IManager */
@@ -38,8 +38,8 @@ class ParameterHelper {
 	/** @var \OCP\IUserManager */
 	protected $userManager;
 
-	/** @var \OC\Files\View */
-	protected $rootView;
+	/** @var \OCP\Files\IRootFolder */
+	protected $rootFolder;
 
 	/** @var \OCP\IL10N */
 	protected $l;
@@ -53,15 +53,15 @@ class ParameterHelper {
 	/**
 	 * @param IManager $activityManager
 	 * @param IUserManager $userManager
-	 * @param View $rootView
+	 * @param IRootFolder $rootFolder
 	 * @param IConfig $config
 	 * @param IL10N $l
 	 * @param string $user
 	 */
-	public function __construct(IManager $activityManager, IUserManager $userManager, View $rootView, IConfig $config, IL10N $l, $user) {
+	public function __construct(IManager $activityManager, IUserManager $userManager, IRootFolder $rootFolder, IConfig $config, IL10N $l, $user) {
 		$this->activityManager = $activityManager;
 		$this->userManager = $userManager;
-		$this->rootView = $rootView;
+		$this->rootFolder = $rootFolder;
 		$this->config = $config;
 		$this->l = $l;
 		$this->user = $user;
@@ -200,9 +200,14 @@ class ParameterHelper {
 	 */
 	protected function prepareFileParam($param, $stripPath, $highlightParams) {
 		$param = $this->fixLegacyFilename($param);
-		$is_dir = $this->rootView->is_dir('/' . $this->user . '/files' . $param);
+		try {
+			$node = $this->rootFolder->get('/' . $this->user . '/files' . $param);
+			$isDir = $node instanceof Folder;
+		} catch (\OCP\Files\NotFoundException $e) {
+			$isDir = false;
+		}
 
-		if ($is_dir) {
+		if ($isDir) {
 			$fileLink = Util::linkTo('files', 'index.php', array('dir' => $param));
 		} else {
 			$parentDir = (substr_count($param, '/') === 1) ? '/' : dirname($param);

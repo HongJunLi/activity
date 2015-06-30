@@ -74,7 +74,7 @@ class Application extends App {
 				new ParameterHelper (
 					$server->getActivityManager(),
 					$server->getUserManager(),
-					new View(''),
+					$server->getRootFolder(),
 					$server->getConfig(),
 					$c->query('ActivityL10N'),
 					$c->query('CurrentUID')
