@@ -33,7 +33,6 @@ use OCA\Activity\Display;
 use OCA\Activity\GroupHelper;
 use OCA\Activity\FilesHooks;
 use OCA\Activity\MailQueueHandler;
-use OCA\Activity\MockUtilSendMail;
 use OCA\Activity\Navigation;
 use OCA\Activity\ParameterHelper;
 use OCA\Activity\UserSettings;

@@ -34,6 +34,7 @@ class Api
 
 	static public function get($param) {
 		$app = new AppInfo\Application();
+		/** @var \OCA\Activity\Data $data */
 		$data = $app->getContainer()->query('ActivityData');
 
 		$start = isset($_GET['start']) ? $_GET['start'] : 0;
